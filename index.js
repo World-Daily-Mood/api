@@ -1,85 +1,37 @@
 const express = require("express");
 const fs = require("fs");
-const { Keys } = require("./mysql/keys")
+const key = require("./utils/key")
+const { createHash } = require('crypto');
+const { Mysql } = require("./mysql/mysql");
 
 const app = express();
 const port = 8080
 
 let mysql_raw = fs.readFileSync("mysql/config.json");
 let mysql_config = JSON.parse(mysql_raw);
-const keys = new Keys(mysql_config["host"], mysql_config["username"], mysql_config["password"], mysql_config["database"]);
-
-function check_key_presence(req, res) {
-    const api_key = req.get("Authentication");
-
-    if (api_key == null) {
-        res.status(403).send({"message": "403: Forbidden"});
-        return false
-    } else {
-        return true;
-    }
-}
-
-function api_key_is_valid(req, res) {
-    const api_key = req.get("Authentication");
-
-    if (check_key_presence(req, res)) {
-        return new Promise(function(resolve, reject) {
-            keys.check(api_key).then(result => {
-                if (result) {
-                    resolve(result);
-                } else {
-                    res.status(403).send({"message": "403: Forbidden"});
-                    resolve(result);
-                }
-            });
-        }
-    )} else {
-        return new Promise(function(resolve, reject) {
-            resolve(false);
-        }); 
-    }
-}
+const mysql = new Mysql(mysql_config["host"], mysql_config["username"], mysql_config["password"], mysql_config["database"]);
 
 app.get("/", (req, res) => {
     res.send("Api root");
 });
 
 app.get("/key/check", (req, res) => {
-    const api_key = req.get("Authentication");
-
-    api_key_is_valid(req, res).then(result => {
-        if (result) {
-            res.send({data: api_key});
+    key.check(req, res, mysql).then(function(result){
+        if (result == true) {
+            res.send({message: "200: OK"})
         }
     });
 });
 
+app.get("/user/register", (req, res) => {
+    const hashed_email = createHash("sha256").update(req.get("Email")).digest("hex");
+    const hashed_password = createHash("sha256").update(req.get("Password")).digest("hex");
 
+    const user_id =  Math.floor(Math.random() * (9999999999 - 1000000000) + 1000000000);
 
-/*
-    if (check_key_presence(req, res) == true) {
-        keys.check(api_key, function(err, result) {
-        if (result == true) {
-            res.send({data: api_key});
-
-        } else {
-            res.status(403).send({"message": "403: Forbidden"});
-        }
-        });
-    }
-
-
+    mysql.user_add(user_id, hashed_email, hashed_password).then(result => {
+    res.send({"email": email, "password": password, "user_id": user_id});
+    });
 });
-*/
-
-app.get("/key/generate", (req, res) => {
-    var api_keys = keys.generate(2);
-    console.log(api_keys);
-
-    res.send(api_keys);
-});
-
-//console.log(app._router.stack);
 
 app.listen(port, () => console.log("Server started on " + port));
