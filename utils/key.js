@@ -1,7 +1,7 @@
 const { createHash } = require("crypto");
 const { randomBytes } = require("crypto");
 
-function generate(req, res, mysql) {
+function generate() {
     return createHash("sha256").update(randomBytes(16).toString("hex")).digest("hex");
 }
 
