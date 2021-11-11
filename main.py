@@ -90,4 +90,8 @@ def dev_ip_delete():
 
 if __name__ == "__main__":
     from waitress import serve
+    host = "0.0.0.0"
+    port = 5000
+
+    print(f"Running on {host}:{port}")
     serve(app, host="0.0.0.0", port=5000)
