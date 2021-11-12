@@ -9,6 +9,8 @@ from mysql_utils import database
 db = database.MySQL()
 cnf = config.Config()
 
+trusted_proxies = {"127.0.0.1"}
+
 @app.route("/")
 def index():
     return "World Daily Mood API root, map at /map"
@@ -46,6 +48,9 @@ def dev_ip_get():
     token = request.headers.get("Authentication")
 
     if cnf.check_token(token):
+        route = request.access_route + [request.remote_addr]
+        raw_ip = next((addr for addr in reversed(route) if addr not in trusted_proxies), request.remote_addr)
+
         raw_ip = request.remote_addr
         hashed_ip = ip.encode(raw_ip)
 
@@ -77,7 +82,8 @@ def dev_ip_delete():
     token = request.headers.get("Authentication")
 
     if cnf.check_token(token):
-        raw_ip = request.remote_addr
+        route = request.access_route + [request.remote_addr]
+        raw_ip = next((addr for addr in reversed(route) if addr not in trusted_proxies), request.remote_addr)
         hashed_ip = ip.encode(raw_ip)
 
         db.delete_ip(hashed_ip)
