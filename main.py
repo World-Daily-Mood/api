@@ -80,6 +80,14 @@ def mood_get():
         return jsonify({"message": "404: IP record not found for today"}), 404
 
 
+@app.route("/current/get", methods=["GET"])
+def current_get():
+    mood_data = db.get_current()
+
+    if mood_data is not None:
+        return jsonify({"mood": mood_data[0], "updated_at": mood_data[1]})
+    else:
+        return jsonify({"message": "404: No current mood"}), 404
 
 @app.route("/dev/ip/get", methods=["GET"])
 def dev_ip_get():

@@ -1,5 +1,6 @@
 import json
 import mysql.connector
+from mysql.connector.fabric import connection
 
 configfile = "./mysql_utils/config.json"
 
@@ -86,5 +87,18 @@ class MySQL:
 
         if result is not None:
             return result[0]
-        else:
-            return None
+        return result
+
+    def get_current(self):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM current"
+        cursor.execute(query)
+
+        result = cursor.fetchone()
+        connection.close()
+
+        if result is not None:
+            return result
+        return result
