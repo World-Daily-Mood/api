@@ -9,8 +9,6 @@ from mysql_utils import database
 db = database.MySQL()
 cnf = config.Config()
 
-trusted_proxies = {"127.0.0.1"}
-
 @app.route("/")
 def index():
     return "World Daily Mood API root, map at /map"
@@ -21,37 +19,39 @@ def _map():
 
 @app.route("/ip/update", methods=["POST"])
 def ip_update():
-    raw_ip = request.remote_addr
+    raw_ip = request.headers.get("x-appengine-user-ip")
+    print(raw_ip)
     hashed_ip = ip.encode(raw_ip)
 
     if db.get_ip(hashed_ip) == None:
         db.add_ip(hashed_ip)
-        return jsonify({"message": "200: success"})
     else:
         db.update_ip(hashed_ip)
-        return jsonify({"message": "200: success"})
+
+    return jsonify({"message": "200: success"})
 
 
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
-    data = db.get_ip(ip.encode(request.remote_addr))
+    raw_ip = request.headers.get("x-appengine-user-ip")
+    data = db.get_ip(ip.encode(raw_ip))
 
     can_send_req = timestamp.can_req(data)
 
     if can_send_req:
         return jsonify({"message": "200: success"})
     else:
-        return jsonify({"message": "403: forbidden"})
+        return jsonify({"message": "403: forbidden"}), 403
 
 @app.route("/dev/ip/get", methods=["GET"])
 def dev_ip_get():
     token = request.headers.get("Authentication")
 
     if cnf.check_token(token):
-        route = request.access_route + [request.remote_addr]
-        raw_ip = next((addr for addr in reversed(route) if addr not in trusted_proxies), request.remote_addr)
+        raw_ip = request.headers.get("target-ip")
+        if raw_ip == None:
+            raw_ip = request.headers.get("x-appengine-user-ip")
 
-        raw_ip = request.remote_addr
         hashed_ip = ip.encode(raw_ip)
 
         data = db.get_ip(hashed_ip)
@@ -75,15 +75,16 @@ def dev_ip_get():
             return jsonify({"message": "404: not found"}), 404
 
     else:
-        return jsonify({"message": "403: forbidden"})
+        return jsonify({"message": "403: forbidden"}), 403
 
 @app.route("/dev/ip/delete", methods=["DELETE"])
 def dev_ip_delete():
     token = request.headers.get("Authentication")
+    raw_ip = request.headers.get("target-ip")
 
     if cnf.check_token(token):
-        route = request.access_route + [request.remote_addr]
-        raw_ip = next((addr for addr in reversed(route) if addr not in trusted_proxies), request.remote_addr)
+        if raw_ip == None:
+            raw_ip = request.headers.get("x-appengine-user-ip")
         hashed_ip = ip.encode(raw_ip)
 
         db.delete_ip(hashed_ip)
@@ -91,7 +92,7 @@ def dev_ip_delete():
         return jsonify({"message": "200: success"})
 
     else:
-        return jsonify({"message": "403: forbidden"})
+        return jsonify({"message": "403: forbidden"}), 403
 
 
 if __name__ == "__main__":
