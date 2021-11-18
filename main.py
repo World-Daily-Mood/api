@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+
 app = Flask(__name__, template_folder="storage")
 app.config["JSON_SORT_KEYS"] = False
 
@@ -20,7 +21,6 @@ def _map():
 @app.route("/ip/update", methods=["POST"])
 def ip_update():
     raw_ip = request.headers.get("x-appengine-user-ip")
-    print(raw_ip)
     hashed_ip = ip.encode(raw_ip)
 
     if db.get_ip(hashed_ip) == None:
@@ -41,7 +41,45 @@ def ip_check():
     if can_send_req:
         return jsonify({"message": "200: success"})
     else:
-        return jsonify({"message": "403: forbidden"}), 403
+        return jsonify({"message": "403: forbidden, you already sent a request today"}), 403
+
+
+@app.route("/mood/add", methods=["POST"])
+def mood_add():
+    raw_ip = request.headers.get("x-appengine-user-ip")
+    hashed_ip = ip.encode(raw_ip)
+    mood = request.headers.get("Mood")
+    data = db.get_ip(ip.encode(raw_ip))
+
+    can_send_req = timestamp.can_req(data)
+
+    if data == None:
+        db.add_ip(hashed_ip)
+        db.add_mood(hashed_ip, mood)
+
+        return jsonify({"message": "200: success"})
+
+    if can_send_req:
+        db.add_mood(hashed_ip, mood)
+
+        return jsonify({"message": "200: success"})
+
+    else:
+        return jsonify({"message": "403: forbidden, you already sent a request today"}), 403
+
+@app.route("/mood/get", methods=["GET"])
+def mood_get():
+    raw_ip = request.headers.get("x-appengine-user-ip")
+    mood = request.headers.get("Mood")
+
+    mood = db.get_mood(ip.encode(raw_ip))
+
+    if mood is not None:
+        return jsonify({"mood": mood})
+    else:
+        return jsonify({"message": "404: IP record not found for today"}), 404
+
+
 
 @app.route("/dev/ip/get", methods=["GET"])
 def dev_ip_get():
@@ -72,10 +110,10 @@ def dev_ip_get():
             }), 200
 
         else:
-            return jsonify({"message": "404: not found"}), 404
+            return jsonify({"message": "404: IP address not found"}), 404
 
     else:
-        return jsonify({"message": "403: forbidden"}), 403
+        return jsonify({"message": "403: forbidden, token invalid"}), 403
 
 @app.route("/dev/ip/delete", methods=["DELETE"])
 def dev_ip_delete():
@@ -92,7 +130,7 @@ def dev_ip_delete():
         return jsonify({"message": "200: success"})
 
     else:
-        return jsonify({"message": "403: forbidden"}), 403
+        return jsonify({"message": "403: forbidden, token invalid"}), 403
 
 
 if __name__ == "__main__":

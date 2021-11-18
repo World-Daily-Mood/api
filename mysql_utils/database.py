@@ -62,3 +62,29 @@ class MySQL:
 
         connection.commit()
         connection.close()
+
+
+    def add_mood(self, hashed_ip, mood):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "INSERT INTO today (ip, mood) VALUES (%s, %s)"
+        cursor.execute(query, (hashed_ip, mood))
+
+        connection.commit()
+        connection.close()
+
+    def get_mood(self, hashed_ip):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "SELECT mood FROM today WHERE ip = %s"
+        cursor.execute(query, (hashed_ip,))
+
+        result = cursor.fetchone()
+        connection.close()
+
+        if result is not None:
+            return result[0]
+        else:
+            return None
