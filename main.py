@@ -4,7 +4,7 @@ app = Flask(__name__, template_folder="storage")
 app.config["JSON_SORT_KEYS"] = False
 
 
-from utils import ip, timestamp, config
+from utils import ip, timestamp, config, send_res
 from mysql_utils import database
 
 db = database.MySQL()
@@ -39,9 +39,9 @@ def ip_check():
     can_send_req = timestamp.can_req(data)
 
     if can_send_req:
-        return jsonify({"message": "200: success"})
+        return send_res.send({"message": "200: success"})
     else:
-        return jsonify({"message": "403: forbidden, you already sent a request today"}), 403
+        return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
 
 
 @app.route("/mood/add", methods=["POST"])
@@ -57,15 +57,15 @@ def mood_add():
         db.add_ip(hashed_ip)
         db.add_mood(hashed_ip, mood)
 
-        return jsonify({"message": "200: success"})
+        return send_res.send({"message": "200: success"})
 
     if can_send_req:
         db.add_mood(hashed_ip, mood)
 
-        return jsonify({"message": "200: success"})
+        return send_res.send({"message": "200: success"})
 
     else:
-        return jsonify({"message": "403: forbidden, you already sent a request today"}), 403
+        return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
 
 @app.route("/mood/get", methods=["GET"])
 def mood_get():
@@ -77,7 +77,7 @@ def mood_get():
     if mood is not None:
         return jsonify({"mood": mood})
     else:
-        return jsonify({"message": "404: IP record not found for today"}), 404
+        return send_res.send({"message": "404: IP record not found for today"}, 404)
 
 
 @app.route("/current/get", methods=["GET"])
@@ -85,9 +85,9 @@ def current_get():
     mood_data = db.get_current()
 
     if mood_data is not None:
-        return jsonify({"mood": mood_data[0], "updated_at": mood_data[1]})
+        return send_res.send({"mood": mood_data[0], "updated_at": mood_data[1]})
     else:
-        return jsonify({"message": "404: No current mood"}), 404
+        return send_res.send({"message": "404: No current mood"}, 404)
 
 @app.route("/dev/ip/get", methods=["GET"])
 def dev_ip_get():
@@ -105,7 +105,7 @@ def dev_ip_get():
         if data is not None:
             last_reqest, next_request, can_send_req = timestamp.get_all(data)
 
-            return jsonify({"ip": {
+            return send_res.send({"ip": {
                                 "raw": raw_ip, 
                                 "encoded": hashed_ip
                                 }, 
@@ -115,13 +115,13 @@ def dev_ip_get():
                                 "send_request": can_send_req,
                             }
 
-            }), 200
+            })
 
         else:
-            return jsonify({"message": "404: IP address not found"}), 404
+            return send_res.send({"message": "404: IP address not found"}, 404)
 
     else:
-        return jsonify({"message": "403: forbidden, token invalid"}), 403
+        return send_res.send({"message": "403: forbidden, token invalid"}, 403)
 
 @app.route("/dev/ip/delete", methods=["DELETE"])
 def dev_ip_delete():
@@ -135,10 +135,10 @@ def dev_ip_delete():
 
         db.delete_ip(hashed_ip)
 
-        return jsonify({"message": "200: success"})
+        return send_res.send({"message": "200: success"})
 
     else:
-        return jsonify({"message": "403: forbidden, token invalid"}), 403
+        return send_res.send({"message": "403: forbidden, token invalid"}, 403)
 
 
 if __name__ == "__main__":
