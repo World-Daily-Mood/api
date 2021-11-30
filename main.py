@@ -1,6 +1,6 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, url_for
 
-app = Flask(__name__, template_folder="storage")
+app = Flask(__name__, template_folder="storage", static_folder=None)
 app.config["JSON_SORT_KEYS"] = False
 
 
@@ -15,8 +15,26 @@ def index():
     return "World Daily Mood API root, map at /map"
 
 @app.route("/map")
-def _map():
-    return render_template("map.html")
+def url_map():
+    url_map = {}
+
+    for rule in app.url_map.iter_rules():
+
+        endpoint_methods = "["
+        for method in rule.methods:
+            endpoint_methods += method + ", "
+        endpoint_methods = endpoint_methods[:-2] + "]"
+        
+        required = None
+        if "dev" in rule.rule:
+            required = "Authentication: token, (valid dev token)"
+        
+
+        url_description = {"endpoint": rule.rule, "methods": endpoint_methods, "required_headers": required}
+
+        url_map[rule.rule] = url_description
+
+    return jsonify(url_map)
 
 @app.route("/ip/update", methods=["POST"])
 def ip_update():
