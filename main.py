@@ -40,13 +40,17 @@ def url_map():
 @app.route("/r-generate", methods=["POST"])
 def generate_redirect():
     mood = request.headers.get("mood")
+    token = request.headers.get("authorization")
 
     if mood is not None:
-        mood = mood.lower()
-        redirect_id = db.create_redirect(mood)
+        if cnf.check_token(token):
+            mood = mood.lower()
+            redirect_id = db.create_redirect(mood)
 
-        return send_res.send({"redirect_id": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
-    
+            return send_res.send({"redirect_id": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
+
+        else:
+            return send_res.send({"error": "Invalid token"}, 401)
     else:
         return send_res.send({"message": "400 No mood specified"}, 400)
 
