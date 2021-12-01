@@ -36,19 +36,6 @@ def url_map():
 
     return jsonify(url_map)
 
-@app.route("/ip/update", methods=["POST"])
-def ip_update():
-    raw_ip = ip.get_raw(request)
-    hashed_ip = ip.encode(raw_ip)
-
-    if db.get_ip(hashed_ip) == None:
-        db.add_ip(hashed_ip)
-    else:
-        db.update_ip(hashed_ip)
-
-    return jsonify({"message": "200: success"})
-
-
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
     raw_ip = ip.get_raw(request)
@@ -147,7 +134,7 @@ def dev_ip_delete():
 
     if cnf.check_token(token):
         raw_ip = ip.get_raw(request)
-        
+
         if raw_ip == None:
             raw_ip = request.headers.get("x-appengine-user-ip")
         hashed_ip = ip.encode(raw_ip)
