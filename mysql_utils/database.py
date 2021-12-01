@@ -1,6 +1,6 @@
 import json
 import mysql.connector
-from mysql.connector.fabric import connection
+from utils import idgen
 
 configfile = "./mysql_utils/config.json"
 
@@ -21,6 +21,8 @@ class MySQL:
             password = self.password,
             database = self.database
         )
+
+    # REQUESTS
 
     def add_request(self, hashed_ip: str, mood: str):
         connection = self.connect()
@@ -53,3 +55,34 @@ class MySQL:
 
         connection.commit()
         connection.close()
+
+
+    # REDIRECTS
+
+    def create_redirect(self, mood: str):
+        _id = idgen.generate()
+        if self.get_redirect(_id) == None:
+            connection = self.connect()
+            cursor = connection.cursor()
+
+            query = "INSERT INTO redirects (id, mood) VALUES (%s, %s)"
+            cursor.execute(query, (_id, mood,))
+
+            connection.commit()
+            connection.close()
+
+            return _id
+
+        return self.create_redirect(mood)
+
+    def get_redirect(self, id: str):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM redirects WHERE id = %s"
+        cursor.execute(query, (id,))
+
+        result = cursor.fetchone()
+        connection.close()
+
+        return result

@@ -20,3 +20,6 @@ def can_req(data):
         now = datetime.datetime.now()
 
         return next_req <= now
+
+    else:
+        return True

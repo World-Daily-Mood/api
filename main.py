@@ -37,6 +37,41 @@ def url_map():
 
     return jsonify(url_map)
 
+@app.route("/r-generate", methods=["POST"])
+def generate_redirect():
+    mood = request.headers.get("mood")
+
+    if mood is not None:
+        mood = mood.lower()
+        redirect_id = db.create_redirect(mood)
+
+        return send_res.send({"redirect_id": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
+    
+    else:
+        return send_res.send({"message": "400 No mood specified"}, 400)
+
+
+@app.route("/r/<request_id>", methods=["GET"])
+def redirect_request(request_id):
+    raw_ip = ip.get_raw(request)
+    hashed_ip = ip.encode(raw_ip)
+
+    mood = db.get_redirect(request_id)[1]
+    data = db.get_request(hashed_ip)
+
+
+    if mood is not None:
+        if timestamp.can_req(data):
+            db.add_request(hashed_ip, mood)
+            return send_res.send({"message": "200 success"}, 200)
+
+        else:
+            return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
+
+    else:
+        return send_res.send({"message": "404 redirect not found"}, 404)
+
+
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
     raw_ip = ip.get_raw(request)
@@ -150,7 +185,7 @@ def dev_ip_delete():
     if cnf.check_token(token):
         raw_ip = ip.get_raw(request)
         hashed_ip = ip.encode(raw_ip)
-        ip_data = db.get_ip(hashed_ip)
+        ip_data = db.get_request(hashed_ip)
 
         if ip_data is not None:
             db.delete_requests(hashed_ip)
