@@ -38,7 +38,7 @@ def url_map():
 
 @app.route("/ip/update", methods=["POST"])
 def ip_update():
-    raw_ip = request.headers.get("x-appengine-user-ip")
+    raw_ip = ip.get_raw(request)
     hashed_ip = ip.encode(raw_ip)
 
     if db.get_ip(hashed_ip) == None:
@@ -51,7 +51,7 @@ def ip_update():
 
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
-    raw_ip = request.headers.get("x-appengine-user-ip")
+    raw_ip = ip.get_raw(request)
     data = db.get_ip(ip.encode(raw_ip))
 
     can_send_req = timestamp.can_req(data)
@@ -64,7 +64,7 @@ def ip_check():
 
 @app.route("/mood/add", methods=["POST"])
 def mood_add():
-    raw_ip = request.headers.get("x-appengine-user-ip")
+    raw_ip = ip.get_raw(request)
     hashed_ip = ip.encode(raw_ip)
     mood = request.headers.get("Mood")
     data = db.get_ip(ip.encode(raw_ip))
@@ -87,7 +87,7 @@ def mood_add():
 
 @app.route("/mood/get", methods=["GET"])
 def mood_get():
-    raw_ip = request.headers.get("x-appengine-user-ip")
+    raw_ip = ip.get_raw(request)
     mood = request.headers.get("Mood")
 
     mood = db.get_mood(ip.encode(raw_ip))
@@ -112,7 +112,7 @@ def dev_ip_get():
     token = request.headers.get("Authentication")
 
     if cnf.check_token(token):
-        raw_ip = request.headers.get("target-ip")
+        raw_ip = ip.get_raw(request)
         if raw_ip == None:
             raw_ip = request.headers.get("x-appengine-user-ip")
 
@@ -144,9 +144,10 @@ def dev_ip_get():
 @app.route("/dev/ip/delete", methods=["DELETE"])
 def dev_ip_delete():
     token = request.headers.get("Authentication")
-    raw_ip = request.headers.get("target-ip")
 
     if cnf.check_token(token):
+        raw_ip = ip.get_raw(request)
+        
         if raw_ip == None:
             raw_ip = request.headers.get("x-appengine-user-ip")
         hashed_ip = ip.encode(raw_ip)
