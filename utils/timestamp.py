@@ -6,13 +6,13 @@ def get_all(data):
 
 def last_req(data):
     if data is not None:
-        return data [1]
+        return data [2]
 
 def nex_req(data):
     if data is not None:
         one_day = datetime.timedelta(days=1)
 
-        return data[1] + one_day
+        return data[2] + one_day
 
 def can_req(data):
     if data is not None:

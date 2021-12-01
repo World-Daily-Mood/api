@@ -22,11 +22,21 @@ class MySQL:
             database = self.database
         )
 
-    def get_ip(self, hashed_ip):
+    def add_request(self, hashed_ip: str, mood: str):
         connection = self.connect()
         cursor = connection.cursor()
 
-        query = "SELECT * FROM requests WHERE ip = %s"
+        query = "INSERT INTO requests (ip, mood) VALUES (%s, %s)"
+        cursor.execute(query, (hashed_ip, mood,))
+
+        connection.commit()
+        connection.close()
+
+    def get_request(self, hashed_ip: str):
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM requests WHERE ip = %s ORDER BY updated_at DESC LIMIT 1"
         cursor.execute(query, (hashed_ip,))
 
         result = cursor.fetchone()
@@ -34,17 +44,7 @@ class MySQL:
 
         return result
 
-    def add_ip(self, hashed_ip):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        query = "INSERT INTO requests (ip) VALUES (%s)"
-        cursor.execute(query, (hashed_ip,))
-
-        connection.commit()
-        connection.close()
-
-    def delete_ip(self, hashed_ip):
+    def delete_requests(self, hashed_ip):
         connection = self.connect()
         cursor = connection.cursor()
 
@@ -53,52 +53,3 @@ class MySQL:
 
         connection.commit()
         connection.close()
-        
-    def update_ip(self, hashed_ip):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        query = "UPDATE requests SET date = current_timestamp() WHERE ip = %s"
-        cursor.execute(query, (hashed_ip,))
-
-        connection.commit()
-        connection.close()
-
-
-    def add_mood(self, hashed_ip, mood):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        query = "INSERT INTO today (ip, mood) VALUES (%s, %s)"
-        cursor.execute(query, (hashed_ip, mood))
-
-        connection.commit()
-        connection.close()
-
-    def get_mood(self, hashed_ip):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        query = "SELECT mood FROM today WHERE ip = %s"
-        cursor.execute(query, (hashed_ip,))
-
-        result = cursor.fetchone()
-        connection.close()
-
-        if result is not None:
-            return result[0]
-        return result
-
-    def get_current(self):
-        connection = self.connect()
-        cursor = connection.cursor()
-
-        query = "SELECT * FROM current"
-        cursor.execute(query)
-
-        result = cursor.fetchone()
-        connection.close()
-
-        if result is not None:
-            return result
-        return result

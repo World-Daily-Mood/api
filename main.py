@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template, url_for
+import time
 
 app = Flask(__name__, template_folder="storage", static_folder=None)
 app.config["JSON_SORT_KEYS"] = False
@@ -39,7 +40,7 @@ def url_map():
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
     raw_ip = ip.get_raw(request)
-    data = db.get_ip(ip.encode(raw_ip))
+    data = db.get_request(ip.encode(raw_ip))
 
     can_send_req = timestamp.can_req(data)
 
@@ -54,43 +55,56 @@ def mood_add():
     raw_ip = ip.get_raw(request)
     hashed_ip = ip.encode(raw_ip)
     mood = request.headers.get("Mood")
-    data = db.get_ip(ip.encode(raw_ip))
 
-    can_send_req = timestamp.can_req(data)
 
-    if data == None:
-        db.add_ip(hashed_ip)
-        db.add_mood(hashed_ip, mood)
+    if mood is not None:
+    
+        data = db.get_ip(hashed_ip)
 
-        return send_res.send({"message": "200: success"})
+        if data is None:
+            db.add_request(hashed_ip, mood)
 
-    if can_send_req:
-        db.add_mood(hashed_ip, mood)
+            return send_res.send({"message": "200: success"})
+        
+        else:
+            can_send_req = timestamp.can_req(data)
 
-        return send_res.send({"message": "200: success"})
+            if can_send_req:
+                db.add_request(hashed_ip, mood)
 
+                return send_res.send({"message": "200: success"})
+        
+            else:
+                return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
+    
     else:
-        return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
+        return send_res.send({"message": "400: bad request, no mood specified"}, 400)
+
 
 @app.route("/mood/get", methods=["GET"])
 def mood_get():
     raw_ip = ip.get_raw(request)
-    mood = request.headers.get("Mood")
 
-    mood = db.get_mood(ip.encode(raw_ip))
+    data = db.get_request(ip.encode(raw_ip))
 
-    if mood is not None:
-        return jsonify({"mood": mood})
+    if data is not None:
+        if timestamp.can_req(data) == False:
+            return send_res.send({"mood": data[1]})
+
+        else:
+            return send_res.send({"message": "404: IP record not found for the last 24 hours"}, 404)
+
     else:
-        return send_res.send({"message": "404: IP record not found for today"}, 404)
+        return send_res.send({"message": "404: not found, no requests found for this ip"}, 404)
+
 
 
 @app.route("/current/get", methods=["GET"])
 def current_get():
-    mood_data = db.get_current()
+    data = db.get_current()
 
-    if mood_data is not None:
-        return send_res.send({"mood": mood_data[0], "updated_at": mood_data[1]})
+    if data is not None:
+        return send_res.send({"mood": data[0], "updated_at": data[1]})
     else:
         return send_res.send({"message": "404: No current mood"}, 404)
 
@@ -105,7 +119,7 @@ def dev_ip_get():
 
         hashed_ip = ip.encode(raw_ip)
 
-        data = db.get_ip(hashed_ip)
+        data = db.get_request(hashed_ip)
 
         if data is not None:
             last_reqest, next_request, can_send_req = timestamp.get_all(data)
@@ -118,7 +132,8 @@ def dev_ip_get():
                                 "last_request_at": last_reqest,
                                 "next_request_at": next_request,
                                 "send_request": can_send_req,
-                            }
+                            },
+                            "last_mood": data[1]
 
             })
 
@@ -134,15 +149,11 @@ def dev_ip_delete():
 
     if cnf.check_token(token):
         raw_ip = ip.get_raw(request)
-
-        if raw_ip == None:
-            raw_ip = request.headers.get("x-appengine-user-ip")
         hashed_ip = ip.encode(raw_ip)
-
         ip_data = db.get_ip(hashed_ip)
 
         if ip_data is not None:
-            db.delete_ip(hashed_ip)
+            db.delete_requests(hashed_ip)
             return send_res.send({"message": "200: success"})
 
         else:
