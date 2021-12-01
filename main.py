@@ -139,9 +139,14 @@ def dev_ip_delete():
             raw_ip = request.headers.get("x-appengine-user-ip")
         hashed_ip = ip.encode(raw_ip)
 
-        db.delete_ip(hashed_ip)
+        ip_data = db.get_ip(hashed_ip)
 
-        return send_res.send({"message": "200: success"})
+        if ip_data is not None:
+            db.delete_ip(hashed_ip)
+            return send_res.send({"message": "200: success"})
+
+        else:
+            return send_res.send({"message": "404: IP address not found"}, 404)
 
     else:
         return send_res.send({"message": "403: forbidden, token invalid"}, 403)
