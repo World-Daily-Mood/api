@@ -47,7 +47,7 @@ def generate_redirect():
             mood = mood.lower()
             redirect_id = db.create_redirect(mood)
 
-            return send_res.send({"redirect_id": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
+            return send_res.send({"redirect_id": redirect_id, "redirect_url": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
 
         else:
             return send_res.send({"error": "Invalid token"}, 401)
