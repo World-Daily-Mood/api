@@ -1,6 +1,6 @@
 import json
+import time
 import mysql.connector
-from utils import idgen
 
 configfile = "./mysql_utils/config.json"
 
@@ -22,7 +22,23 @@ class MySQL:
             database = self.database
         )
 
-    # REQUESTS
+    def _check_latency(self):
+        start = time.time()
+
+        connection = self.connect()
+        cursor = connection.cursor()
+
+        query = "SELECT * FROM requests"
+        cursor.execute(query)
+
+        cursor.fetchone()
+        connection.close()
+
+        end = time.time()
+
+        return round(end - start, 2)
+
+# REQUESTS
 
     def add_request(self, hashed_ip: str, mood: str):
         connection = self.connect()
@@ -38,7 +54,7 @@ class MySQL:
         connection = self.connect()
         cursor = connection.cursor()
 
-        query = "SELECT * FROM requests WHERE ip = %s ORDER BY updated_at DESC LIMIT 1"
+        query = "SELECT * FROM requests WHERE ip = %s ORDER BY sent_at DESC LIMIT 1"
         cursor.execute(query, (hashed_ip,))
 
         result = cursor.fetchone()
@@ -56,31 +72,14 @@ class MySQL:
         connection.commit()
         connection.close()
 
+    # CURRENT
 
-    # REDIRECTS
-
-    def create_redirect(self, mood: str):
-        _id = idgen.generate()
-        if self.get_redirect(_id) == None:
-            connection = self.connect()
-            cursor = connection.cursor()
-
-            query = "INSERT INTO redirects (id, mood) VALUES (%s, %s)"
-            cursor.execute(query, (_id, mood,))
-
-            connection.commit()
-            connection.close()
-
-            return _id
-
-        return self.create_redirect(mood)
-
-    def get_redirect(self, id: str):
+    def get_current(self):
         connection = self.connect()
         cursor = connection.cursor()
 
-        query = "SELECT * FROM redirects WHERE id = %s"
-        cursor.execute(query, (id,))
+        query = "SELECT * FROM current"
+        cursor.execute(query)
 
         result = cursor.fetchone()
         connection.close()

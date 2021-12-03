@@ -5,8 +5,12 @@ config_file = "./storage/config.json"
 
 class Config:
     def __init__(self):
-        with open(config_file, "r") as f:
-            self.config = json.load(f)  
+        try:
+            with open(config_file, "r") as f:
+                self.config = json.load(f)
+        except FileNotFoundError:
+            print("Main config file (./storage/config.json) is missing")
+            exit(1)
 
     def check_token(self, token):
         if token is not None:
@@ -15,3 +19,9 @@ class Config:
 
     def get_admin_token(self):
         return self.config["admin_token"]
+
+    def get_valid_moods(self):
+        return self.config["moods"]
+
+    def get_configfiles(self):
+        return self.config["configfiles"]

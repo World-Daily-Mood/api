@@ -1,15 +1,15 @@
-from flask import Flask, request, jsonify, render_template, url_for
-import time
+from flask import Flask, request, jsonify
 
 app = Flask(__name__, template_folder="storage", static_folder=None)
 app.config["JSON_SORT_KEYS"] = False
 
-
-from utils import ip, timestamp, config, send_res
+from utils import ip, timestamp, config, send_res, mood_check, idgen
 from mysql_utils import database
 
 db = database.MySQL()
 cnf = config.Config()
+
+base_url = "https://world-mood-333716.appspot.com"
 
 @app.route("/")
 def index():
@@ -37,44 +37,6 @@ def url_map():
 
     return jsonify(url_map)
 
-@app.route("/r-generate", methods=["POST"])
-def generate_redirect():
-    mood = request.headers.get("mood")
-    token = request.headers.get("authorization")
-
-    if mood is not None:
-        if cnf.check_token(token):
-            mood = mood.lower()
-            redirect_id = db.create_redirect(mood)
-
-            return send_res.send({"redirect_id": redirect_id, "redirect_url": f"https://world-mood-333716.appspot.com/r/{redirect_id}"}, 200)
-
-        else:
-            return send_res.send({"error": "Invalid token"}, 401)
-    else:
-        return send_res.send({"message": "400 No mood specified"}, 400)
-
-
-@app.route("/r/<request_id>", methods=["GET"])
-def redirect_request(request_id):
-    raw_ip = ip.get_raw(request)
-    hashed_ip = ip.encode(raw_ip)
-
-    mood = db.get_redirect(request_id)[1]
-    data = db.get_request(hashed_ip)
-
-
-    if mood is not None:
-        if timestamp.can_req(data):
-            db.add_request(hashed_ip, mood)
-            return send_res.send({"message": "200 success"}, 200)
-
-        else:
-            return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
-
-    else:
-        return send_res.send({"message": "404 redirect not found"}, 404)
-
 
 @app.route("/ip/check", methods=["GET"])
 def ip_check():
@@ -88,25 +50,21 @@ def ip_check():
     else:
         return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
 
-
 @app.route("/mood/add", methods=["POST"])
 def mood_add():
     raw_ip = ip.get_raw(request)
     hashed_ip = ip.encode(raw_ip)
-    mood = request.headers.get("Mood")
-
+    mood = request.headers.get("mood")
 
     if mood is not None:
-    
-        data = db.get_ip(hashed_ip)
+        data = db.get_request(hashed_ip)
 
         if data is None:
             db.add_request(hashed_ip, mood)
-
             return send_res.send({"message": "200: success"})
         
         else:
-            can_send_req = timestamp.can_req(data)
+            can_send_req = timestamp.can_req(data[0])
 
             if can_send_req:
                 db.add_request(hashed_ip, mood)
@@ -136,7 +94,23 @@ def mood_get():
     else:
         return send_res.send({"message": "404: not found, no requests found for this ip"}, 404)
 
+@app.route("/mood-bot", methods=["GET"])
+def mood_bot():
+    mood = request.args.get("mood")
+    raw_ip = ip.get_raw(request)
+    hashed_ip = ip.encode(raw_ip)
 
+    if mood_check.is_valid(mood):
+        data = db.get_request(hashed_ip)
+        
+        if timestamp.can_req(data):
+            db.add_request(hashed_ip, mood)
+            return send_res.send({"message": "200: success"})
+
+        else:
+            return send_res.send({"message": "403: forbidden, you already sent a request today"}, 403)
+    else:
+        return send_res.send({"message": "400: bad request, invalid mood"}, 400)
 
 @app.route("/current/get", methods=["GET"])
 def current_get():
