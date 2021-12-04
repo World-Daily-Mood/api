@@ -105,6 +105,7 @@ def mood_is_valid():
             return send_res.send({"message": "400: bad request, invalid mood"}, 400)
     else:
         return send_res.send({"message": "400: bad request, no mood specified"}, 400)
+        
 @app.route("/mood-bot", methods=["GET"])
 def mood_bot():
     mood = request.args.get("mood")

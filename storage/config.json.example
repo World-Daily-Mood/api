@@ -1,0 +1,10 @@
+{
+    "admin_token": "your sha256 encoded admin token",
+    "configfiles": [
+        "./mysql_utils/config.json",
+        "./storage/config.json",
+        "./app.yaml",
+        "./requirements.txt"
+    ],
+    "moods": ["happy", "sad", "angry", "scared"]
+}
