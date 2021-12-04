@@ -94,6 +94,17 @@ def mood_get():
     else:
         return send_res.send({"message": "404: not found, no requests found for this ip"}, 404)
 
+@app.route("/mood/is-valid", methods=["GET"])
+def mood_is_valid():
+    mood = request.args.get("mood")
+
+    if mood is not None:
+        if mood_check.is_valid(mood):
+            return send_res.send({"message": "200: success"})
+        else:
+            return send_res.send({"message": "400: bad request, invalid mood"}, 400)
+    else:
+        return send_res.send({"message": "400: bad request, no mood specified"}, 400)
 @app.route("/mood-bot", methods=["GET"])
 def mood_bot():
     mood = request.args.get("mood")
