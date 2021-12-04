@@ -4,3 +4,5 @@
 __pycache__/
 /setup.cfg
 tests
+mysql_utils/config.json.example
+storage/config.json.example
